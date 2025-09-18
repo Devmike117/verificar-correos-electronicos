@@ -53,9 +53,7 @@ Librerías:
 ```bash
 pip install -r requirements.txt
 ```
-## Ejecución
 
-La aplicación abrirá una ventana donde podrás ingresar un correo electrónico y obtener un reporte detallado de su validez y nivel de riesgo.
 
 ## Clonación del repositorio
 
