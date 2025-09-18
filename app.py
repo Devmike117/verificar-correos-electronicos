@@ -11,6 +11,7 @@ import os, sys
 # =========================================================
 # Función para cargar recursos (icono, imágenes.)
 # =========================================================
+
 def resource_path(relative_path):
 
     try:
@@ -22,6 +23,7 @@ def resource_path(relative_path):
 # =========================================================
 # dominios oficiales conocidos (para phishing)
 # =========================================================
+
 DOMINIOS_OFICIALES = [
     "google.com", "gmail.com", "outlook.com", "hotmail.com",
     "yahoo.com", "apple.com", "icloud.com", "microsoft.com",
@@ -35,6 +37,7 @@ def dominio_oficial(dominio):
 # =========================================================
 # validación de correo 
 # =========================================================
+
 def validar_correo(P):
     if P == "":
         return True
@@ -118,6 +121,7 @@ def verificar_autenticacion(dominio):
 # =========================================================
 # Similitud de dominios para detectar phishing
 # =========================================================
+
 def levenshtein(a, b):
     if len(a) < len(b):
         return levenshtein(b, a)
@@ -134,16 +138,33 @@ def levenshtein(a, b):
         prev_row = curr_row
     return prev_row[-1]
 
+def detectar_diferencia(dominio, oficial):
+    diferencias = []
+    min_len = min(len(dominio), len(oficial))
+    for i in range(min_len):
+        if dominio[i] != oficial[i]:
+            diferencias.append(f"Posición {i+1}: '{dominio[i]}' en correo vs '{oficial[i]}' esperado")
+
+    if len(dominio) > len(oficial):
+        diferencias.append(f"Extra en dominio: '{dominio[min_len:]}'")
+    elif len(oficial) > len(dominio):
+        diferencias.append(f"Falta en dominio: debería tener '{oficial[min_len:]}'")
+    return diferencias
+
 def detectar_errores(dominio):
     for oficial in DOMINIOS_OFICIALES:
         distancia = levenshtein(dominio, oficial)
         if 0 < distancia <= 2:
-            return f"⚠︎ El dominio '{dominio}' es muy similar a '{oficial}' (distancia {distancia}). Posible phishing."
+            diferencias = detectar_diferencia(dominio, oficial)
+            detalle = "\n".join(diferencias) if diferencias else "Diferencias menores detectadas."
+            return f"⚠︎ El dominio '{dominio}' es muy similar a '{oficial}' (distancia {distancia}).\nDetalles: {detalle}"
     return None
+
 
 # =========================================================
 # Auditoría principal
 # =========================================================
+
 def auditar():
     correo = correo_entry.get().strip()
     if not correo:
@@ -167,6 +188,7 @@ def auditar():
     # =======================
     # 1. Sintaxis
     # =======================
+    
     sintaxis_ok = verificar_sintaxis(correo)
     frame_sintaxis = tk.Frame(reporte_frame, bg="#ffffff", bd=1, relief="solid")
     frame_sintaxis.pack(fill="x", padx=20, pady=5)
@@ -181,6 +203,7 @@ def auditar():
     # =======================
     # 2. Dominio y MX
     # =======================
+    
     dominio = correo.split('@')[1] if '@' in correo else ""
     mx_hosts = obtener_mx(dominio)
     frame_mx = tk.Frame(reporte_frame, bg="#ffffff", bd=1, relief="solid")
@@ -203,6 +226,7 @@ def auditar():
     # =======================
     # 3. SMTP
     # =======================
+    
     if mx_hosts:
         frame_smtp = tk.Frame(reporte_frame, bg="#ffffff", bd=1, relief="solid")
         frame_smtp.pack(fill="x", padx=20, pady=5)
@@ -216,6 +240,7 @@ def auditar():
     # =======================
     # 4. DNSBL
     # =======================
+    
     frame_dnsbl = tk.Frame(reporte_frame, bg="#ffffff", bd=1, relief="solid")
     frame_dnsbl.pack(fill="x", padx=20, pady=5)
     tk.Label(frame_dnsbl, text="Listas negras (DNSBL)", font=("Helvetica Neue", 14, "bold"), bg="#ffffff").pack(anchor="w", padx=10, pady=5)
@@ -238,6 +263,7 @@ def auditar():
     # =======================
     # 5. SPF/DKIM/DMARC
     # =======================
+    
     frame_auth = tk.Frame(reporte_frame, bg="#ffffff", bd=1, relief="solid")
     frame_auth.pack(fill="x", padx=20, pady=5)
     tk.Label(frame_auth, text="🔹 Autenticación SPF/DKIM/DMARC", font=("Helvetica Neue", 14, "bold"), bg="#ffffff").pack(anchor="w", padx=10, pady=5)
@@ -255,6 +281,7 @@ def auditar():
     # =======================
     # Resultado final
     # =======================
+    
     confianza = max(0, 100 - int((riesgo_total / max_riesgo) * 100))
 
     if confianza >= 80:
@@ -279,12 +306,16 @@ def auditar():
 # =========================================================
 # Interfaz principal
 # =========================================================
+
 root = tk.Tk()
 root.title("Auditoría de Correos Electrónicos")
 root.geometry("800x750")
 root.configure(bg="#f5f5f7")
 
+# =========================================================
 # Icono
+# =========================================================
+
 root.iconbitmap(resource_path("icono_app.ico"))
 
 # Entrada
@@ -299,7 +330,10 @@ auditar_btn = tk.Button(root, text="Verificar", command=auditar,
                         activebackground="#7f8183", activeforeground="white", bd=0)
 auditar_btn.pack(pady=10)
 
+# =========================================================
 # Área de reporte 
+# =========================================================
+
 canvas = tk.Canvas(root, bg="#f5f5f7", highlightthickness=0)
 style = ttk.Style()
 style.theme_use('clam')
@@ -315,5 +349,6 @@ canvas.create_window((0, 0), window=reporte_frame, anchor="nw")
 canvas.configure(yscrollcommand=scrollbar.set)
 canvas.pack(side="left", fill="both", expand=True)
 scrollbar.pack(side="right", fill="y")
+
 
 root.mainloop()
